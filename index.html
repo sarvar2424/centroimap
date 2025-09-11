@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CENTRO - Интеллектуальная карта функций</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: auto;
+        }
+
+        .mindmap {
+            width: 4000px;
+            height: 3000px;
+            position: relative;
+            padding: 100px;
+        }
+
+        /* Central Node */
+        .central-node {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 100;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .central-node:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+        }
+
+        /* Main Branches */
+        .branch {
+            position: absolute;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 180px;
+        }
+
+        .branch:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .branch-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .branch-icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+
+        /* Sub-branches */
+        .sub-branch {
+            position: absolute;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            font-size: 14px;
+            min-width: 150px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sub-branch:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .sub-branch-title {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
+        /* Features */
+        .feature {
+            position: absolute;
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            color: #664d03;
+            white-space: nowrap;
+        }
+
+        /* Connection Lines */
+        .connection {
+            position: absolute;
+            background: #ddd;
+            transform-origin: left center;
+            z-index: 1;
+        }
+
+        .connection.main {
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .connection.sub {
+            height: 2px;
+            background: #adb5bd;
+        }
+
+        .connection.feature {
+            height: 1px;
+            background: #dee2e6;
+        }
+
+        /* Module Colors */
+        .pos { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .inventory { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .delivery { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .crm { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .qr { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .tasks { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .finance { background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); }
+        .alerts { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); }
+        .apps { background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); }
+        .integrations { background: linear-gradient(135deg, #fddb92 0%, #d1fdff 100%); }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            background: #5a67d8;
+        }
+
+        /* Legend */
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .fadeIn {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.2);
+            transition: right 0.3s;
+            z-index: 999;
+            overflow-y: auto;
+        }
+
+        .info-panel.active {
+            right: 0;
+        }
+
+        .info-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .info-content {
+            padding: 20px;
+        }
+
+        .info-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .legend {
+                display: none;
+            }
+            
+            .controls {
+                top: 10px;
+                right: 10px;
+                padding: 10px;
+            }
+            
+            .info-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mindmap" id="mindmap">
+            <!-- Central Node -->
+            <div class="central-node" id="centro">
+                CENTRO
+            </div>
+
+            <!-- Main Branches -->
+            
+            <!-- 1. POS/Касса -->
+            <div class="branch pos fadeIn" style="left: 2300px; top: 800px;" data-module="pos">
+                <div class="branch-icon">🏪</div>
+                <div class="branch-title">POS / Касса</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 2550px; top: 700px;">
+                <div class="sub-branch-title">Быстрые продажи</div>
+                • Горячие клавиши<br>
+                • Избранные товары<br>
+                • Голосовой ввод
+            </div>
+            
+            <div class="sub-branch" style="left: 2550px; top: 820px;">
+                <div class="sub-branch-title">Платежи</div>
+                • Payme/Click/Uzum<br>
+                • Наличные/Карта<br>
+                • Комбинированная оплата
+            </div>
+            
+            <div class="sub-branch" style="left: 2550px; top: 940px;">
+                <div class="sub-branch-title">Скидки и бонусы</div>
+                • До 100% бонусами<br>
+                • Купоны<br>
+                • Промокоды
+            </div>
+
+            <!-- 2. Склад и производство -->
+            <div class="branch inventory fadeIn" style="left: 2200px; top: 1200px;" data-module="inventory">
+                <div class="branch-icon">📦</div>
+                <div class="branch-title">Склад и производство</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 2450px; top: 1120px;">
+                <div class="sub-branch-title">Рецептуры (BOM)</div>
+                • Многоуровневые<br>
+                • Автосписание<br>
+                • Полуфабрикаты
+            </div>
+            
+            <div class="sub-branch" style="left: 2450px; top: 1240px;">
+                <div class="sub-branch-title">Учёт партий</div>
+                • FIFO/FEFO<br>
+                • Сроки годности<br>
+                • Серийные номера
+            </div>
+            
+            <div class="sub-branch" style="left: 2450px; top: 1360px;">
+                <div class="sub-branch-title">Инвентаризация</div>
+                • Мобильное приложение<br>
+                • Штрихкоды<br>
+                • Автозаказ
+            </div>
+
+            <!-- 3. Доставка -->
+            <div class="branch delivery fadeIn" style="left: 1900px; top: 1450px;" data-module="delivery">
+                <div class="branch-icon">🚚</div>
+                <div class="branch-title">Доставка</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 1380px;">
+                <div class="sub-branch-title">Управление заказами</div>
+                • Мультиканальность<br>
+                • Батчинг<br>
+                • Приоритизация
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 1500px;">
+                <div class="sub-branch-title">Курьерское приложение</div>
+                • Оптимальные маршруты<br>
+                • Фотоотчёты<br>
+                • Трекинг
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 1620px;">
+                <div class="sub-branch-title">Клиентский опыт</div>
+                • Live-трекинг<br>
+                • Push-уведомления<br>
+                • Рейтинги
+            </div>
+
+            <!-- 4. CRM/Лояльность -->
+            <div class="branch crm fadeIn" style="left: 1500px; top: 1550px;" data-module="crm">
+                <div class="branch-icon">👥</div>
+                <div class="branch-title">CRM / Лояльность</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 1300px; top: 1480px;">
+                <div class="sub-branch-title">Бонусная система</div>
+                • 100% оплата бонусами<br>
+                • Начисление на cash<br>
+                • Уровни и статусы
+            </div>
+            
+            <div class="sub-branch" style="left: 1300px; top: 1600px;">
+                <div class="sub-branch-title">Сегментация</div>
+                • RFM-анализ<br>
+                • Поведенческие сегменты<br>
+                • Предиктивная аналитика
+            </div>
+            
+            <div class="sub-branch" style="left: 1300px; top: 1720px;">
+                <div class="sub-branch-title">Маркетинг</div>
+                • Email/SMS/Push<br>
+                • Триггерные цепочки<br>
+                • A/B тестирование
+            </div>
+
+            <!-- 5. QR-столы и бронирование -->
+            <div class="branch qr fadeIn" style="left: 1100px; top: 1450px;" data-module="qr">
+                <div class="branch-icon">📱</div>
+                <div class="branch-title">QR-столы</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 900px; top: 1380px;">
+                <div class="sub-branch-title">QR-меню</div>
+                • Мультиязычность<br>
+                • Фото блюд<br>
+                • Рекомендации
+            </div>
+            
+            <div class="sub-branch" style="left: 900px; top: 1500px;">
+                <div class="sub-branch-title">Бронирование</div>
+                • Слоты времени<br>
+                • Предоплата<br>
+                • Напоминания
+            </div>
+            
+            <div class="sub-branch" style="left: 900px; top: 1620px;">
+                <div class="sub-branch-title">Управление залом</div>
+                • План зала<br>
+                • Статусы столов<br>
+                • Объединение столов
+            </div>
+
+            <!-- 6. TaskManager -->
+            <div class="branch tasks fadeIn" style="left: 800px; top: 1200px;" data-module="tasks">
+                <div class="branch-icon">✅</div>
+                <div class="branch-title">TaskManager</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 600px; top: 1120px;">
+                <div class="sub-branch-title">Автоматизация</div>
+                • Триггеры событий<br>
+                • Шаблоны задач<br>
+                • Эскалация
+            </div>
+            
+            <div class="sub-branch" style="left: 600px; top: 1240px;">
+                <div class="sub-branch-title">Контроль</div>
+                • Чек-листы<br>
+                • Дедлайны<br>
+                • KPI сотрудников
+            </div>
+            
+            <div class="sub-branch" style="left: 600px; top: 1360px;">
+                <div class="sub-branch-title">Коммуникация</div>
+                • Внутренний чат<br>
+                • Комментарии<br>
+                • Файлы
+            </div>
+
+            <!-- 7. Финансы и отчётность -->
+            <div class="branch finance fadeIn" style="left: 700px; top: 800px;" data-module="finance">
+                <div class="branch-icon">📊</div>
+                <div class="branch-title">Финансы и отчёты</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 500px; top: 700px;">
+                <div class="sub-branch-title">Финансовый учёт</div>
+                • P&L отчёты<br>
+                • Себестоимость<br>
+                • Маржинальность
+            </div>
+            
+            <div class="sub-branch" style="left: 500px; top: 820px;">
+                <div class="sub-branch-title">Аналитика</div>
+                • Real-time дашборды<br>
+                • Прогнозирование<br>
+                • Сравнение периодов
+            </div>
+            
+            <div class="sub-branch" style="left: 500px; top: 940px;">
+                <div class="sub-branch-title">Экспорт</div>
+                • Excel/PDF<br>
+                • API для 1C<br>
+                • Расписание отчётов
+            </div>
+
+            <!-- 8. Уведомления/Сценарии -->
+            <div class="branch alerts fadeIn" style="left: 900px; top: 500px;" data-module="alerts">
+                <div class="branch-icon">🔔</div>
+                <div class="branch-title">Уведомления</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 750px; top: 400px;">
+                <div class="sub-branch-title">Сценарии</div>
+                • Низкие остатки<br>
+                • Просрочка<br>
+                • SLA нарушения
+            </div>
+            
+            <div class="sub-branch" style="left: 750px; top: 520px;">
+                <div class="sub-branch-title">Каналы</div>
+                • In-app<br>
+                • Push/SMS/Email<br>
+                • Telegram
+            </div>
+
+            <!-- 9. Экосистема приложений -->
+            <div class="branch apps fadeIn" style="left: 1400px; top: 400px;" data-module="apps">
+                <div class="branch-icon">📱</div>
+                <div class="branch-title">Приложения</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 1250px; top: 300px;">
+                <div class="sub-branch-title">Клиентские</div>
+                • Guest App<br>
+                • Web PWA<br>
+                • Kiosk
+            </div>
+            
+            <div class="sub-branch" style="left: 1400px; top: 280px;">
+                <div class="sub-branch-title">Персонал</div>
+                • Waiter<br>
+                • Kitchen<br>
+                • Delivery
+            </div>
+            
+            <div class="sub-branch" style="left: 1550px; top: 300px;">
+                <div class="sub-branch-title">Управление</div>
+                • Manager<br>
+                • Owner<br>
+                • Franchise
+            </div>
+
+            <!-- 10. Интеграции -->
+            <div class="branch integrations fadeIn" style="left: 1900px; top: 500px;" data-module="integrations">
+                <div class="branch-icon">🔗</div>
+                <div class="branch-title">Интеграции</div>
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 400px;">
+                <div class="sub-branch-title">Платежи</div>
+                • Payme<br>
+                • Click<br>
+                • Uzum
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 520px;">
+                <div class="sub-branch-title">Доставка</div>
+                • Яндекс.Еда<br>
+                • Uzum Tezkor<br>
+                • Wolt
+            </div>
+            
+            <div class="sub-branch" style="left: 2100px; top: 640px;">
+                <div class="sub-branch-title">Сервисы</div>
+                • Google Maps<br>
+                • WhatsApp<br>
+                • 1C
+            </div>
+
+            <!-- Connection lines will be drawn dynamically -->
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" onclick="zoomIn()">Zoom +</button>
+        <button class="control-btn" onclick="zoomOut()">Zoom -</button>
+        <button class="control-btn" onclick="resetView()">Reset</button>
+        <button class="control-btn" onclick="expandAll()">Expand All</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-title">Модули системы</div>
+        <div class="legend-item">
+            <div class="legend-color pos"></div>
+            <span>POS и касса</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color inventory"></div>
+            <span>Склад</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color delivery"></div>
+            <span>Доставка</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color crm"></div>
+            <span>CRM</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color qr"></div>
+            <span>QR-столы</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color tasks"></div>
+            <span>Задачи</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color finance"></div>
+            <span>Финансы</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color alerts"></div>
+            <span>Уведомления</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color apps"></div>
+            <span>Приложения</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color integrations"></div>
+            <span>Интеграции</span>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="info-panel" id="infoPanel">
+        <div class="info-close" onclick="closeInfo()">×</div>
+        <div class="info-header">
+            <h2 id="infoTitle">Информация о модуле</h2>
+        </div>
+        <div class="info-content" id="infoContent">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+
+    <script>
+        let scale = 1;
+        const mindmap = document.getElementById('mindmap');
+        const container = document.querySelector('.container');
+        
+        // Module information
+        const moduleInfo = {
+            pos: {
+                title: "POS и касса",
+                description: "Центральный модуль для проведения продаж и управления транзакциями",
+                features: [
+                    "Офлайн-режим до 72 часов",
+                    "Голосовое управление",
+                    "Динамическое ценообразование",
+                    "AI-рекомендации для upsell",
+                    "Интеграция с фискальными регистраторами"
+                ],
+                priority: "MVP",
+                timeline: "0-1 месяц"
+            },
+            inventory: {
+                title: "Склад и производство",
+                description: "Полный контроль над запасами и производственными процессами",
+                features: [
+                    "Многоуровневые рецептуры",
+                    "IoT датчики температуры",
+                    "Прогнозирование потребности AI",
+                    "Контроль сроков годности",
+                    "Автоматические заказы поставщикам"
+                ],
+                priority: "MVP",
+                timeline: "0-2 месяца"
+            },
+            delivery: {
+                title: "Доставка",
+                description: "Управление всем циклом доставки от заказа до клиента",
+                features: [
+                    "Оптимизация маршрутов",
+                    "Live-трекинг курьеров",
+                    "Батчинг заказов",
+                    "Интеграция с агрегаторами",
+                    "Видеозвонки при проблемах"
+                ],
+                priority: "v1.1",
+                timeline: "2-3 месяца"
+            },
+            crm: {
+                title: "CRM и лояльность",
+                description: "Управление клиентской базой и программами лояльности",
+                features: [
+                    "100% оплата бонусами",
+                    "Семейные аккаунты",
+                    "Предиктивная аналитика LTV",
+                    "Геймификация",
+                    "Омниканальные профили"
+                ],
+                priority: "MVP",
+                timeline: "1-2 месяца"
+            },
+            qr: {
+                title: "QR-столы и бронирование",
+                description: "Цифровизация обслуживания в зале",
+                features: [
+                    "QR-меню с AR просмотром",
+                    "Онлайн бронирование",
+                    "План зала в реальном времени",
+                    "Предзаказы",
+                    "Split-счета"
+                ],
+                priority: "v1.1",
+                timeline: "2-3 месяца"
+            },
+            tasks: {
+                title: "TaskManager",
+                description: "Автоматизация операционных задач и контроль исполнения",
+                features: [
+                    "80% задач создаются автоматически",
+                    "Многоуровневая эскалация",
+                    "KPI трекинг",
+                    "Чек-листы процессов",
+                    "Внутренние коммуникации"
+                ],
+                priority: "v1.1",
+                timeline: "2-3 месяца"
+            },
+            finance: {
+                title: "Финансы и отчётность",
+                description: "Полный финансовый контроль и бизнес-аналитика",
+                features: [
+                    "Real-time P&L",
+                    "Себестоимость блюд",
+                    "50+ готовых отчётов",
+                    "Прогнозирование выручки",
+                    "Интеграция с 1C"
+                ],
+                priority: "MVP",
+                timeline: "1-2 месяца"
+            },
+            alerts: {
+                title: "Уведомления и сценарии",
+                description: "Проактивное информирование о важных событиях",
+                features: [
+                    "Предустановленные сценарии",
+                    "Мультиканальность",
+                    "Настраиваемые триггеры",
+                    "Окна тишины",
+                    "Приоритизация"
+                ],
+                priority: "v1.1",
+                timeline: "2-3 месяца"
+            },
+            apps: {
+                title: "Экосистема приложений",
+                description: "12+ специализированных приложений для всех ролей",
+                features: [
+                    "Native iOS/Android",
+                    "PWA для web",
+                    "Kiosk терминалы",
+                    "TV displays",
+                    "Единая авторизация"
+                ],
+                priority: "MVP-v1.2",
+                timeline: "0-6 месяцев"
+            },
+            integrations: {
+                title: "Интеграции",
+                description: "Подключение внешних сервисов и платформ",
+                features: [
+                    "Платёжные системы",
+                    "Агрегаторы доставки",
+                    "Картографические сервисы",
+                    "Мессенджеры",
+                    "Бухгалтерские системы"
+                ],
+                priority: "MVP-v1.2",
+                timeline: "0-6 месяцев"
+            }
+        };
+
+        // Draw connections
+        function drawConnections() {
+            const centro = document.getElementById('centro');
+            const branches = document.querySelectorAll('.branch');
+            const centroRect = centro.getBoundingClientRect();
+            const mindmapRect = mindmap.getBoundingClientRect();
+            
+            // Remove existing connections
+            document.querySelectorAll('.connection').forEach(c => c.remove());
+            
+            branches.forEach(branch => {
+                const branchRect = branch.getBoundingClientRect();
+                
+                // Calculate positions relative to mindmap
+                const centroX = centroRect.left - mindmapRect.left + centroRect.width / 2;
+                const centroY = centroRect.top - mindmapRect.top + centroRect.height / 2;
+                const branchX = branchRect.left - mindmapRect.left + branchRect.width / 2;
+                const branchY = branchRect.top - mindmapRect.top + branchRect.height / 2;
+                
+                // Create connection line
+                const connection = document.createElement('div');
+                connection.className = 'connection main';
+                
+                const deltaX = branchX - centroX;
+                const deltaY = branchY - centroY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                
+                connection.style.width = distance + 'px';
+                connection.style.left = centroX + 'px';
+                connection.style.top = centroY + 'px';
+                connection.style.transform = `rotate(${angle}deg)`;
+                
+                mindmap.appendChild(connection);
+            });
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            drawConnections();
+            centerView();
+        });
+
+        // Center view on CENTRO
+        function centerView() {
+            const centro = document.getElementById('centro');
+            const centroRect = centro.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            const scrollLeft = centroRect.left - containerRect.left - containerRect.width / 2 + centroRect.width / 2;
+            const scrollTop = centroRect.top - containerRect.top - containerRect.height / 2 + centroRect.height / 2;
+            
+            container.scrollLeft += scrollLeft;
+            container.scrollTop += scrollTop;
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            scale = Math.min(scale * 1.2, 3);
+            mindmap.style.transform = `scale(${scale})`;
+            drawConnections();
+        }
+
+        function zoomOut() {
+            scale = Math.max(scale / 1.2, 0.5);
+            mindmap.style.transform = `scale(${scale})`;
+            drawConnections();
+        }
+
+        function resetView() {
+            scale = 1;
+            mindmap.style.transform = `scale(${scale})`;
+            centerView();
+            drawConnections();
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.sub-branch').forEach(sub => {
+                sub.style.display = sub.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+
+        // Module click handlers
+        document.querySelectorAll('.branch').forEach(branch => {
+            branch.addEventListener('click', function() {
+                const moduleKey = this.dataset.module;
+                if (moduleKey && moduleInfo[moduleKey]) {
+                    showModuleInfo(moduleInfo[moduleKey]);
+                }
+            });
+        });
+
+        // Show module information
+        function showModuleInfo(info) {
+            document.getElementById('infoTitle').textContent = info.title;
+            
+            let content = `
+                <p><strong>${info.description}</strong></p>
+                <h3>Ключевые функции:</h3>
+                <ul>
+                    ${info.features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+                <div style="margin-top: 20px;">
+                    <span style="background: #667eea; color: white; padding: 5px 10px; border-radius: 5px; margin-right: 10px;">
+                        ${info.priority}
+                    </span>
+                    <span style="background: #f0f0f0; padding: 5px 10px; border-radius: 5px;">
+                        ${info.timeline}
+                    </span>
+                </div>
+            `;
+            
+            document.getElementById('infoContent').innerHTML = content;
+            document.getElementById('infoPanel').classList.add('active');
+        }
+
+        function closeInfo() {
+            document.getElementById('infoPanel').classList.remove('active');
+        }
+
+        // Dragging functionality
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target === container || e.target === mindmap) {
+                isDragging = true;
+                container.style.cursor = 'grabbing';
+                startX = e.pageX - container.offsetLeft;
+                startY = e.pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft;
+                scrollTop = container.scrollTop;
+            }
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const y = e.pageY - container.offsetTop;
+            const walkX = (x - startX) * 1;
+            const walkY = (y - startY) * 1;
+            container.scrollLeft = scrollLeft - walkX;
+            container.scrollTop = scrollTop - walkY;
+        });
+
+        // Touch support for mobile
+        let touchStartX, touchStartY;
+        
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            scrollLeft = container.scrollLeft;
+            scrollTop = container.scrollTop;
+        });
+
+        container.addEventListener('touchmove', (e) => {
+            const x = e.touches[0].clientX;
+            const y = e.touches[0].clientY;
+            const walkX = (touchStartX - x) * 1;
+            const walkY = (touchStartY - y) * 1;
+            container.scrollLeft = scrollLeft + walkX;
+            container.scrollTop = scrollTop + walkY;
+        });
+
+        // Redraw connections on window resize
+        window.addEventListener('resize', drawConnections);
+    </script>
+</body>
+</html>
